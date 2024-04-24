@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tree Chart Example</title>
+    <link rel="stylesheet" href="Treant.css">
+    <link rel="stylesheet" href="vendor/perfect-scrollbar/perfect-scrollbar.css">
+    <script src="vendor/jquery.min.js"></script>
+    <script src="vendor/raphael.js"></script>
+    <script src="vendor/jquery.easing.js"></script>
+    <script src="vendor/jquery.mousewheel.js"></script>
+    <script src="vendor/perfect-scrollbar/perfect-scrollbar.js"></script>
+    <script src="Treant.js"></script>
+</head>
+<body>
+    <div id="tree-simple"></div>
+
+    <script>
+        nodeStructure = {
+            text: { name: "Service 1" },
+            availabilityTarget: .9995, 
+            children: [
+                {
+                    text: { name: "Service 2", title: "" },
+                    availabilityTarget: .9995, 
+                    children: [{
+                        text: { name: "Service 3", title: "" },
+                        availabilityTarget: .9995, 
+                        children: [{
+                            text: { name: "Service 4", title: "" },
+                            availabilityTarget: .9995, 
+                        }]
+                    }]
+                },
+                {
+                    text: { name: "ECP" },
+                    availabilityTarget: .9995
+                }
+            ]
+        }
+
+        function calculateActualAvailability(node, parentAvailability = 1) {
+            node.actualAvailability = node.availabilityTarget * parentAvailability;
+            node.text.title=`Actual: ${(node.actualAvailability * 100).toFixed(2)} Independent: ${(node.availabilityTarget * 100).toFixed(2)}`
+            if (node.children && node.children.length > 0) {
+                node.children.forEach(child => {
+                    calculateActualAvailability(child, node.actualAvailability);
+                });
+            }
+        }
+
+        calculateActualAvailability(nodeStructure)
+
+        var simple_chart_config = {
+            chart: {
+                container: "#tree-simple",
+                animateOnInit: true,
+                node: {
+                    collapsible: true
+                },
+                animation: {
+                    nodeAnimation: "easeOutBounce",
+                    nodeSpeed: 700,
+                    connectorsAnimation: "bounce",
+                    connectorsSpeed: 700
+                }
+            },
+            nodeStructure: nodeStructure
+        };
+
+        new Treant(simple_chart_config);
+    </script>
+</body>
+</html>
