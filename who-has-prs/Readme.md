@@ -31,12 +31,16 @@ This script retrieves open pull requests from specified GitHub repositories and 
      - org/repo1
      - org/repo2
      - user/repo3
+
+   developers:
+      - dev1
+      - dev2
    ```
 
 ## Usage
 Run the script using:
 ```sh
-python github_pr_reviewers.py
+python prs-by-dev-html.py
 ```
 
 ## Output
