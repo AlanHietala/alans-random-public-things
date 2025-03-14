@@ -1,0 +1,4 @@
+repositories:
+  - org/repo1
+  - org/repo2
+  - user/repo3 
