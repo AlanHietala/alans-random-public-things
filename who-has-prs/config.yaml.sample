@@ -2,3 +2,7 @@ repositories:
   - org/repo1
   - org/repo2
   - user/repo3 
+
+developers:
+  - githubname1
+  - githubname2
