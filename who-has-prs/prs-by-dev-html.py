@@ -6,6 +6,7 @@ import yaml
 import logging
 from typing import List, Dict, Any
 from datetime import datetime, timezone, timedelta
+from collections import defaultdict
 
 STALE_DAYS = 7  # Number of days before a PR is considered stale
 
@@ -112,7 +113,7 @@ class GitHubPRFetcher:
         return {dev: prs for dev, prs in reviewers_data.items() if prs}
 
     def generate_html_report(self, reviewers_data: Dict[str, List[Dict[str, Any]]]):
-        """Generates an HTML file displaying each developer's PRs with a modern theme and feedback status."""
+        """Generates an HTML file displaying each developer's PRs, grouped by repo."""
         html_content = """
         <!DOCTYPE html>
         <html lang="en">
@@ -132,17 +133,16 @@ class GitHubPRFetcher:
                     max-width: 600px;
                     text-align: left;
                 }
+                h1 { color: #333; }
                 h2 { color: #0366d6; }
+                h3 { color: #555; margin-top: 16px; }
                 ul { list-style-type: none; padding: 0; }
                 li { margin: 8px 0; padding: 8px; border-radius: 6px; background: #f9f9f9; }
                 a { text-decoration: none; color: #0366d6; font-weight: bold; }
                 .status { font-size: 14px; padding: 4px 6px; border-radius: 4px; margin-left: 10px; }
                 .in-progress { background: #ffcc00; color: #333; }
-                .stale {
-                    background: #ff4d4f;
-                    color: white;
-                    margin-left: 8px;
-                }
+                .not-started { background: #ccc; color: #333; }
+                .stale { background: #ff4d4f; color: white; margin-left: 8px; }
             </style>
         </head>
         <body>
@@ -150,15 +150,27 @@ class GitHubPRFetcher:
         """
 
         for dev, prs in reviewers_data.items():
-            html_content += f'<div class="developer-card"><h2>{dev}</h2><ul>'
-            for pr in prs:
-                status_class = "in-progress" if pr["inProgress"] else "not-started"
-                status_text = "In Progress" if pr["inProgress"] else "Not Started"
-                stale_tag = '<span class="status stale">Stale</span>' if pr.get("isStale") else ""
+            html_content += f'<div class="developer-card"><h2>{dev}</h2>'
 
-                html_content += f'<li><a href="{pr["url"]}" target="_blank">{pr["title"]}</a> '
-                html_content += f'<span class="status {status_class}">{status_text}</span> {stale_tag}</li>'
-            html_content += '</ul></div>'
+            # Group PRs by repo
+            prs_by_repo = defaultdict(list)
+            for pr in prs:
+                prs_by_repo[pr["repo"]].append(pr)
+
+            for repo, repo_prs in prs_by_repo.items():
+                html_content += f'<h3>{repo}</h3><ul>'
+                for pr in repo_prs:
+                    status_class = "in-progress" if pr["inProgress"] else "not-started"
+                    status_text = "In Progress" if pr["inProgress"] else "Not Started"
+                    stale_tag = '<span class="status stale">Stale</span>' if pr.get("isStale") else ""
+
+                    html_content += (
+                        f'<li><a href="{pr["url"]}" target="_blank">{pr["title"]}</a> '
+                        f'<span class="status {status_class}">{status_text}</span> {stale_tag}</li>'
+                    )
+                html_content += '</ul>'
+
+            html_content += '</div>'
 
         html_content += """
         </body>
@@ -168,7 +180,7 @@ class GitHubPRFetcher:
         with open("reviewers_prs.html", "w") as f:
             f.write(html_content)
         logging.info("PR review data saved to reviewers_prs.html")
-        #######
+            #######
     
 
     def fetch_and_display_prs(self, repos: List[str], save_to_file: bool = False, output_html: bool = False):
