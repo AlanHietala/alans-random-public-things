@@ -6,3 +6,5 @@ repositories:
 developers:
   - githubname1
   - githubname2
+  
+days_stale: 7

@@ -8,7 +8,8 @@ from typing import List, Dict, Any
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict
 
-STALE_DAYS = 7  # Number of days before a PR is considered stale
+
+
 
 GITHUB_API_URL = "https://api.github.com"
 
@@ -16,12 +17,13 @@ GITHUB_API_URL = "https://api.github.com"
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 class GitHubPRFetcher:
-    def __init__(self, token: str, developers: List[str]):
+    def __init__(self, token: str, developers: List[str], days_stale: int = 7):
         self.headers = {
             "Authorization": f"token {token}",
             "Accept": "application/vnd.github.v3+json"
         }
-        self.developers = developers  # Explicit list of developers
+        self.developers = developers
+        self.days_stale = days_stale
     
     def fetch_open_prs(self, repo: str) -> List[Dict[str, Any]]:
         """Fetches open PRs for a given repository, handling pagination."""
@@ -96,7 +98,7 @@ class GitHubPRFetcher:
                 if reviewer_name in self.developers:
                     in_progress = self.has_reviewer_feedback(repo_name, pr_number, reviewer_name)
                     last_updated = datetime.strptime(pr['updated_at'], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
-                    is_stale = (datetime.now(timezone.utc) - last_updated) > timedelta(days=STALE_DAYS)
+                    is_stale = (datetime.now(timezone.utc) - last_updated) > timedelta(days=self.days_stale)
 
                     reviewers_data[reviewer_name].append({
                         "repo": repo_name,
@@ -215,35 +217,41 @@ class GitHubPRFetcher:
         return all_reviewers_data
 
 def load_config(filename: str) -> Dict[str, Any]:
-    """Loads repositories and developers list from a YAML file."""
+    """Loads repositories, developers, and stale threshold from a YAML file."""
     try:
         with open(filename, "r") as file:
             config = yaml.safe_load(file)
             repositories = config.get("repositories", [])
             developers = config.get("developers", [])
+            days_stale = config.get("days_stale", 7)
             if not repositories:
                 logging.warning("No repositories found in config file.")
             if not developers:
                 logging.warning("No developers found in config file.")
-            return {"repositories": repositories, "developers": developers}
+            return {
+                "repositories": repositories,
+                "developers": developers,
+                "days_stale": days_stale
+            }
     except FileNotFoundError:
         logging.error(f"Configuration file {filename} not found.")
-        return {"repositories": [], "developers": []}
+        return {"repositories": [], "developers": [], "days_stale": 7}
     except yaml.YAMLError as e:
         logging.error(f"Error parsing YAML file {filename}: {e}")
-        return {"repositories": [], "developers": []}
+        return {"repositories": [], "developers": [], "days_stale": 7}
 
 if __name__ == "__main__":
     GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
     if not GITHUB_TOKEN:
         raise ValueError("GITHUB_TOKEN environment variable is not set.")
-    
+
     config = load_config("config.yaml")
     repositories = config["repositories"]
     developers = config["developers"]
+    days_stale = config["days_stale"]
 
     if repositories and developers:
-        fetcher = GitHubPRFetcher(GITHUB_TOKEN, developers)
+        fetcher = GitHubPRFetcher(GITHUB_TOKEN, developers, days_stale)
         fetcher.fetch_and_display_prs(repositories, save_to_file=True, output_html=True)
     else:
         logging.error("No repositories or developers to process.")
