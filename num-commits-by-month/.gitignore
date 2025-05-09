@@ -1,0 +1,28 @@
+# Python cache files
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Secrets
+.env
+.envrc
+
+# Output files
+*.html
+*.csv
+*.xlsx
+
+# Logs
+*.log
+
+# Jupyter Notebook checkpoints (if used)
+.ipynb_checkpoints/
+
+# System files
+.DS_Store
+Thumbs.db
